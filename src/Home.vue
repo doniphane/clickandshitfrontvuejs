@@ -131,6 +131,7 @@ onMounted(async () => {
             style="text-decoration: none; color: inherit;"
           >
             <ProductCard
+              :id="product.id"
               :name="product.name"
               :price="product.price"
               :imageName="product.imageUrl || product.imageName || ''"

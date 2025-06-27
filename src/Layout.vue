@@ -3,13 +3,21 @@ import { ref } from 'vue'
 import { ShoppingCart } from 'lucide-vue-next'
 import AppFooter from './components/AppFooter.vue'
 import { useAuthStore } from './store/auth'
+import { useCartStore } from './store/cart'
 
 const auth = useAuthStore()
+const cart = useCartStore()
 const showMenu = ref(false)
 
 function handleLogout() {
   auth.logout()
   showMenu.value = false
+}
+
+function getInitial() {
+  if (auth.user?.name && auth.user.name.length > 0) return auth.user.name[0].toUpperCase()
+  if (auth.user?.email && auth.user.email.length > 0) return auth.user.email[0].toUpperCase()
+  return 'U'
 }
 </script>
 
@@ -34,11 +42,9 @@ function handleLogout() {
         <!-- Si connecté : avatar, nom, menu -->
         <div v-else class="relative">
           <button @click="showMenu = !showMenu" class="flex items-center px-4 py-2 rounded hover:bg-white transition-colors focus:outline-none">
-            <img
-              src="https://ui-avatars.com/api/?name={{ auth.user?.name || auth.user?.email || 'User' }}"
-              alt="Avatar"
-              class="w-8 h-8 rounded-full mr-2"
-            />
+            <span class="w-8 h-8 rounded-full bg-orange-400 text-white flex items-center justify-center font-bold mr-2 text-lg">
+              {{ getInitial() }}
+            </span>
             <span class="font-medium">{{ auth.user?.name || auth.user?.email }}</span>
           </button>
           <div v-if="showMenu" class="absolute right-0 mt-2 w-48 bg-white rounded shadow-lg z-50">
@@ -48,8 +54,9 @@ function handleLogout() {
         </div>
 
         <!-- Panier -->
-        <router-link to="/cart" class="flex items-center px-4 py-2 rounded hover:bg-white transition-colors">
+        <router-link to="/cart" class="flex items-center px-4 py-2 rounded hover:bg-white transition-colors relative">
           <ShoppingCart class="w-6 h-6" />
+          <span v-if="cart.totalCount > 0" class="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{{ cart.totalCount }}</span>
         </router-link>
       </div>
     </nav>

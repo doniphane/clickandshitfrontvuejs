@@ -5,6 +5,7 @@ import ProductDetail from '../components/ProductDetail.vue'
 import Login from '../Login.vue'
 import Register from '../Register.vue'
 import Profile from '../Profile.vue'
+import Cart from '../Cart.vue'
 
 const routes = [
   {
@@ -15,7 +16,8 @@ const routes = [
       { path: 'product/:id', component: ProductDetail, name: 'ProductDetail' },
       { path: 'login', component: Login, name: 'Login' },
       { path: 'register', component: Register, name: 'Register' },
-      { path: 'profile', component: Profile, name: 'Profile' }
+      { path: 'profile', component: Profile, name: 'Profile' },
+      { path: 'cart', component: Cart, name: 'Cart' }
     ]
   }
 ]
