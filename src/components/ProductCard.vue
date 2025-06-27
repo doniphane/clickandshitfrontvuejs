@@ -1,5 +1,5 @@
 <script setup>
-// Déclaration des propriétés attendues par ce composant 
+
 defineProps({
   name: String,             // Nom du produit
   price: [Number, String],  // Prix (

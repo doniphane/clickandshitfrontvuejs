@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { ref } from 'vue'
 import { ShoppingCart } from 'lucide-vue-next'
 import AppFooter from './components/AppFooter.vue'
+import { useAuthStore } from './store/auth'
 
-const isAuthenticated = ref(true) // ← A Changer à false pour voir le lien Connexion quand la connexion i marchera
+const auth = useAuthStore()
 </script>
 
 <template>
@@ -17,7 +17,7 @@ const isAuthenticated = ref(true) // ← A Changer à false pour voir le lien Co
 
         <!-- Si connecté : avatar + lien profil -->
         <router-link
-          v-if="isAuthenticated"
+          v-if="auth.isAuthenticated"
           to="/profile"
           class="px-4 py-2 rounded hover:bg-white transition-colors flex items-center"
         >
@@ -26,7 +26,6 @@ const isAuthenticated = ref(true) // ← A Changer à false pour voir le lien Co
             alt="Avatar"
             class="w-8 h-8 rounded-full mr-2"
           />
-       
         </router-link>
 
         <!-- Si pas connecté  -->
