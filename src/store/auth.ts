@@ -12,7 +12,31 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(Cookies.get('token') || null)
   const isAuthenticated = ref(!!token.value)
   const user = ref<User | null>(null)
-  // Ajoute ici d'autres infos utilisateur si besoin
+
+  async function fetchProfile() {
+    if (!token.value) return
+    try {
+      const res = await fetch('http://localhost:8000/api/profile', {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${token.value}`,
+          'Content-Type': 'application/json'
+        }
+      })
+      if (!res.ok) throw new Error('Impossible de récupérer le profil utilisateur')
+      user.value = await res.json()
+    } catch (e) {
+      user.value = null
+      isAuthenticated.value = false
+      token.value = null
+      Cookies.remove('token')
+    }
+  }
+
+  // Appel automatique au démarrage si token
+  if (token.value) {
+    fetchProfile()
+  }
 
   async function login(email: string, password: string) {
     try {
@@ -25,9 +49,10 @@ export const useAuthStore = defineStore('auth', () => {
       const data = await res.json()
       token.value = data.token
       isAuthenticated.value = true
-      // On suppose que le backend renvoie aussi les infos utilisateur dans data.user
-      user.value = data.user || { email } // fallback : email utilisé comme identifiant
+      // data.token : valeur du token JWT reçu du backend
+      //  sameSite: 'strict' le cookie n’est envoyé que pour le même site (protection CSRF) 
       Cookies.set('token', data.token, { secure: true, sameSite: 'strict' })
+      await fetchProfile()
       return true
     } catch (e: any) {
       isAuthenticated.value = false
@@ -49,8 +74,8 @@ export const useAuthStore = defineStore('auth', () => {
       const data = await res.json()
       token.value = data.token
       isAuthenticated.value = true
-      user.value = data.user || { email }
       Cookies.set('token', data.token, { secure: true, sameSite: 'strict' })
+      await fetchProfile()
       return true
     } catch (e: any) {
       isAuthenticated.value = false
@@ -68,5 +93,5 @@ export const useAuthStore = defineStore('auth', () => {
     Cookies.remove('token')
   }
 
-  return { isAuthenticated, token, user, login, register, logout }
+  return { isAuthenticated, token, user, login, register, logout, fetchProfile }
 }) 
