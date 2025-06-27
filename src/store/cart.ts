@@ -37,7 +37,7 @@ export const useCartStore = defineStore('cart', () => {
 
   const totalCount = computed(() => items.value.reduce((sum, item) => sum + item.quantity, 0))
 
-  // Persistance dans localStorage
+
   watch(items, (val) => {
     localStorage.setItem('cart', JSON.stringify(val))
   }, { deep: true })
