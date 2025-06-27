@@ -129,9 +129,8 @@ onMounted(async () => {
               :price="product.price"
               :imageName="product.imageUrl || product.imageName || ''"
               :stock="product.stockQuantity"
+              :category="typeof product.category === 'object' ? product.category?.name : product.category"
               :description="product.description"
-              :created-at="product.createdAt"
-              :updated-at="product.updatedAt"
             />
           </a>
         </div>

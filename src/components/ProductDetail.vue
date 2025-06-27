@@ -46,9 +46,9 @@ onMounted(async () => {
       </div>
       <p class="mb-6 text-gray-700">{{ product.description }}</p>
       <div class="flex items-center gap-4 mb-6">
-        <div>
-          <span class="block text-xs text-gray-500 mb-1">QTY</span>
-          <select v-model="quantity" class="border rounded px-3 py-2">
+        <div class="border rounded ">
+          <span class="block text-xs text-gray-500 mb-1 " >QTY</span>
+          <select v-model="quantity" class="px-3 py-2">
             <option v-for="n in Math.min(product.stockQuantity, 10)" :key="n" :value="n">{{ n }}</option>
           </select>
         </div>

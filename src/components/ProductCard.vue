@@ -5,6 +5,7 @@ defineProps({
   price: [Number, String],  // Prix (
   imageName: String,        // URL de l'image
   stock: [Number, String],  // Quantité en stock
+  category: String,      // category courte
   description: String,      // Description courte
   createdAt: String,        // Date de création
   updatedAt: String         
@@ -32,15 +33,10 @@ defineProps({
 
       <p class="text-sm text-gray-500 mb-2" v-if="description">{{ description }}</p>
 
-
-      <p class="text-sm text-gray-500 mb-1">Stock : {{ stock }}</p>
-
-
+      <p class="text-sm text-gray-500 mb-2" v-if="category">{{ category}}</p>
       <p class="text-lg font-bold text-gray-800">
         {{ !isNaN(Number(price)) ? '$' + Number(price).toFixed(2) : 'Prix indisponible' }}
       </p>
-
- 
       <p class="text-xs text-gray-400 mt-2" v-if="createdAt">Ajouté le : {{ new Date(createdAt).toLocaleDateString() }}</p>
     </div>
   </div>
