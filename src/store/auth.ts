@@ -5,6 +5,7 @@ import Cookies from 'js-cookie'
 export interface User {
   name?: string
   email?: string
+  roles?: string[]
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -50,7 +51,7 @@ export const useAuthStore = defineStore('auth', () => {
       token.value = data.token
       isAuthenticated.value = true
       // data.token : valeur du token JWT reçu du backend
-      //  sameSite: 'strict' le cookie n’est envoyé que pour le même site (protection CSRF) 
+      //  sameSite: 'strict' le cookie n'est envoyé que pour le même site (protection CSRF) 
       Cookies.set('token', data.token, { secure: false, sameSite: 'strict' })
       await fetchProfile()
       return true
@@ -70,7 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       })
-      if (!res.ok) throw new Error('Erreur lors de l’inscription')
+      if (!res.ok) throw new Error("Erreur lors de l'inscription")
       const data = await res.json()
       token.value = data.token
       isAuthenticated.value = true
@@ -93,5 +94,25 @@ export const useAuthStore = defineStore('auth', () => {
     Cookies.remove('token')
   }
 
-  return { isAuthenticated, token, user, login, register, logout, fetchProfile }
+  // Fonction pour vérifier si l'utilisateur a le rôle SELLER
+  function hasSellerRole(): boolean {
+    return user.value?.roles?.includes('ROLE_SELLER') || false
+  }
+
+  // Fonction pour vérifier si l'utilisateur peut accéder à l'admin
+  function canAccessAdmin(): boolean {
+    return isAuthenticated.value && hasSellerRole()
+  }
+
+  return { 
+    isAuthenticated, 
+    token, 
+    user, 
+    login, 
+    register, 
+    logout, 
+    fetchProfile,
+    hasSellerRole,
+    canAccessAdmin
+  }
 }) 

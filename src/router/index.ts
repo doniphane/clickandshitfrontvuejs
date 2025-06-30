@@ -6,6 +6,7 @@ import Login from '../Login.vue'
 import Register from '../Register.vue'
 import Profile from '../Profile.vue'
 import Cart from '../Cart.vue'
+import Admin from '../Admin.vue'
 import { useAuthStore } from '../store/auth'
 import type { NavigationGuardNext, RouteLocationNormalized } from 'vue-router'
 
@@ -43,7 +44,20 @@ const routes = [
         }
       },
       { path: 'profile', component: Profile, name: 'Profile' },
-      { path: 'cart', component: Cart, name: 'Cart' }
+      { path: 'cart', component: Cart, name: 'Cart' },
+      { 
+        path: 'admin', 
+        component: Admin, 
+        name: 'Admin',
+        beforeEnter: (to: RouteLocationNormalized, from: RouteLocationNormalized, next: NavigationGuardNext) => {
+          const authStore = useAuthStore()
+          if (!authStore.canAccessAdmin()) {
+            next('/')
+          } else {
+            next()
+          }
+        }
+      }
     ]
   }
 ]

@@ -49,6 +49,13 @@ function getInitial() {
           </button>
           <div v-if="showMenu" class="absolute right-0 mt-2 w-48 bg-white rounded shadow-lg z-50">
             <router-link to="/profile" class="block px-4 py-2 hover:bg-gray-100">Mon profil</router-link>
+            <router-link 
+              v-if="auth.hasSellerRole()" 
+              to="/admin" 
+              class="block px-4 py-2 hover:bg-gray-100"
+            >
+              Administration
+            </router-link>
             <button @click="handleLogout" class="block w-full text-left px-4 py-2 hover:bg-gray-100">Déconnexion</button>
           </div>
         </div>

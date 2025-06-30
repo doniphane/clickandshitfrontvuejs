@@ -9,7 +9,7 @@ interface Props {
   name: string
   price: number | string
   imageName: string
-  stock: number | string
+  stockQuantity: number | string
   category: string
   description: string
   createdAt?: string
@@ -30,13 +30,27 @@ function handleAddToCart(event: Event): void {
     imageName: props.imageName
   }, quantity.value)
   
-  // Reset quantity to 1 after adding
+  // Reset quantité a 1 aprés a voir ajouter sinon m'avait des probleme
   quantity.value = 1
 }
 
 function updateQuantity(newQuantity: number): void {
-  if (newQuantity >= 1 && newQuantity <= Number(props.stock)) {
+  if (newQuantity >= 1 && newQuantity <= Number(props.stockQuantity)) {
     quantity.value = newQuantity
+  }
+}
+
+function handleQuantityButtonClick(event: Event, newQuantity: number): void {
+  event.stopPropagation()
+  event.preventDefault()
+  updateQuantity(newQuantity)
+}
+
+function handleQuantityInput(event: Event): void {
+  event.stopPropagation()
+  const target = event.target as HTMLInputElement
+  if (target) {
+    updateQuantity(Number(target.value))
   }
 }
 </script>
@@ -71,7 +85,7 @@ function updateQuantity(newQuantity: number): void {
         <label class="text-sm font-medium text-gray-700">Quantité:</label>
         <div class="flex items-center border rounded-lg">
           <button 
-            @click="updateQuantity(quantity - 1)"
+            @click="handleQuantityButtonClick($event, quantity - 1)"
             :disabled="quantity <= 1"
             class="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -81,18 +95,13 @@ function updateQuantity(newQuantity: number): void {
             v-model.number="quantity"
             type="number"
             min="1"
-            :max="Number(stock)"
+            :max="Number(stockQuantity)"
             class="w-12 text-center border-none focus:outline-none"
-            @input="(event) => {
-              const target = event.target as HTMLInputElement
-              if (target) {
-                updateQuantity(Number(target.value))
-              }
-            }"
+            @input="handleQuantityInput($event)"
           />
           <button 
-            @click="updateQuantity(quantity + 1)"
-            :disabled="quantity >= Number(stock)"
+            @click="handleQuantityButtonClick($event, quantity + 1)"
+            :disabled="quantity >= Number(stockQuantity)"
             class="px-3 py-1 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             +
@@ -104,7 +113,7 @@ function updateQuantity(newQuantity: number): void {
       <button 
         class="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-2 px-4 rounded-lg transition-colors flex items-center justify-center gap-2"
         @click="handleAddToCart($event)"
-        :disabled="Number(stock) <= 0"
+        :disabled="Number(stockQuantity) <= 0"
       >
         <span class="text-lg">+</span>
         <span>Ajouter au panier</span>
@@ -112,7 +121,7 @@ function updateQuantity(newQuantity: number): void {
       
       <!-- Indicateur de stock -->
       <p class="text-xs text-gray-500 mt-2 text-center">
-        Stock: {{ stock }} disponible(s)
+        Stock: {{ stockQuantity }} disponible(s)
       </p>
     </div>
   </div>
