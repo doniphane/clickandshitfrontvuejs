@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, computed } from 'vue'
-import { ShoppingCart, User, Search } from 'lucide-vue-next'
+import {  Search } from 'lucide-vue-next'
 import ProductCard from './components/ProductCard.vue'
 
 const products = ref<any[]>([])
@@ -146,7 +146,7 @@ onMounted(async () => {
               :price="product.price"
               :imageName="product.imageUrl || product.imageName || ''"
               :stockQuantity="product.stockQuantity"
-              :category="typeof product.category === 'object' ? product.category?.name : product.category"
+              :category="product.category || ''"
               :description="product.description"
             />
           </a>

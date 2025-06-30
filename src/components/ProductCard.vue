@@ -10,7 +10,7 @@ interface Props {
   price: number | string
   imageName: string
   stockQuantity: number | string
-  category: string
+  category?: string
   description: string
   createdAt?: string
   updatedAt?: string
