@@ -4,35 +4,35 @@ import { useAuthStore } from './store/auth'
 import { useRouter } from 'vue-router'
 import ProductForm from './components/ProductForm.vue'
 import AdminProductCard from './components/AdminProductCard.vue'
-import baguetteImage from './assets/baguette.jpg'
+
 
 const auth = useAuthStore()
 const router = useRouter()
 
-// État pour les produits
-const products = ref<any[]>([])
-const loading = ref(false)
-const error = ref('')
+// État réactif pour gérer les données
+const products = ref<any[]>([]) // Liste des produits
+const loading = ref(false)      
+const error = ref('')         
 
-// État pour le formulaire
-const showForm = ref(false)
-const editingProduct = ref<any>(null)
+// État pour le formulaire modal
+const showForm = ref(false)          
+const editingProduct = ref<any>(null) // Produit en cours d'édition
 
-// Vérifier les permissions
+// Vérification des permissions à l'initialisation
 onMounted(() => {
   if (!auth.canAccessAdmin()) {
-    router.push('/')
+    router.push('/') // Redirection si pas admin
   } else {
-    fetchProducts()
+    fetchProducts() // Charger les produits si admin
   }
 })
 
+// Fonction pour récupérer tous les produits depuis l'API
 async function fetchProducts() {
   loading.value = true
   error.value = ''
+  
   try {
-    console.log(' Début de fetchProducts - Récupération des produits...')
-    
     const response = await fetch('http://localhost:8000/api/products', {
       headers: {
         'Authorization': `Bearer ${auth.token}`,
@@ -40,100 +40,73 @@ async function fetchProducts() {
       }
     })
     
-    console.log(' Réponse API reçue:', {
-      status: response.status,
-      statusText: response.statusText,
-      headers: Object.fromEntries(response.headers.entries())
-    })
-    
     if (!response.ok) {
       throw new Error('Erreur lors de la récupération des produits')
     }
     
     const data = await response.json()
-    console.log(' Données brutes reçues de l\'API:', data)
     
-    let productsArray: any[] = []
-    
-    // Gérer les différents formats de réponse API Platform sinon marche pas
+    // Gestion des différents formats de réponse de l'API
     if (Array.isArray(data['hydra:member'])) {
-      productsArray = data['hydra:member']
-      console.log(' Format hydra:member détecté, produits trouvés:', productsArray.length)
+      products.value = data['hydra:member']
     } else if (Array.isArray(data.member)) {
-      productsArray = data.member
-      console.log(' Format member détecté, produits trouvés:', productsArray.length)
+      products.value = data.member
     } else if (Array.isArray(data)) {
-      productsArray = data
-      console.log(' Format tableau direct détecté, produits trouvés:', productsArray.length)
+      products.value = data
     } else {
-      productsArray = []
-      console.error(' La réponse de l\'API produits n\'est pas un tableau', data)
+      products.value = []
     }
-    
-    // Log détaillé de chaque produit pour déboguer les images
-    console.log(' Détail de chaque produit:')
-    productsArray.forEach((product, index) => {
-      console.log(`Produit ${index + 1}:`, {
-        id: product.id,
-        name: product.name,
-        imageName: product.imageName,
-        imageUrl: product.imageUrl,
-        image: product.image,
-        // Log de tous les champs pour voir la structure complète
-        allFields: product
-      })
-    })
-    
-    products.value = productsArray
-    console.log(' Produits assignés au state:', products.value.length)
     
   } catch (err: any) {
     error.value = err.message
-    console.error(' Erreur lors de la récupération des produits', err)
   } finally {
     loading.value = false
-    console.log(' fetchProducts terminé')
   }
 }
 
+// Ouvrir le formulaire pour ajouter un nouveau produit
 function openAddForm() {
   editingProduct.value = null
   showForm.value = true
 }
 
+// Ouvrir le formulaire pour modifier un produit existant
 function openEditForm(product: any) {
   editingProduct.value = product
   showForm.value = true
 }
 
+// Sauvegarder un produit (création ou modification)
 async function saveProduct(productData: any) {
   try {
+    // Déterminer l'URL et la méthode selon si on crée ou modifie
     const url = editingProduct.value 
       ? `http://localhost:8000/api/products/${editingProduct.value.id}`
       : 'http://localhost:8000/api/products'
     
     const method = editingProduct.value ? 'PUT' : 'POST'
     
-    // Nettoyer les données avant envoi - format JSON-LD requis par l'API
+    // Préparer les données pour l'API
     const cleanData: any = {
       name: productData.name,
       price: parseFloat(productData.price),
       stockQuantity: parseInt(productData.stockQuantity)
     }
     
-    // Ajouter les champs optionnels seulement s'ils ont une valeur
-    if (productData.description && productData.description.trim()) {
+    // Ajouter les champs optionnels s'ils existent
+    if (productData.description?.trim()) {
       cleanData.description = productData.description.trim()
     }
     
-    if (productData.category && productData.category.trim()) {
+    if (productData.category?.trim()) {
       cleanData.category = productData.category.trim()
     }
     
-    if (productData.imageName && productData.imageName.trim()) {
+    if (productData.imageName?.trim()) {
       cleanData.imageName = productData.imageName.trim()
     }
     
+    // Envoyer la requête à l'API
     const response = await fetch(url, {
       method,
       headers: {
@@ -145,45 +118,18 @@ async function saveProduct(productData: any) {
     })
     
     if (!response.ok) {
-      const errorText = await response.text()
-      let errorMessage = 'Erreur lors de la sauvegarde du produit'
-      
-      try {
-        const errorData = JSON.parse(errorText)
-        // Gestion des différents formats d'erreur API Platform
-        if (errorData.message) {
-          errorMessage = errorData.message
-        } else if (errorData['hydra:description']) {
-          errorMessage = errorData['hydra:description']
-        } else if (errorData.detail) {
-          errorMessage = errorData.detail
-        } else if (errorData.title) {
-          errorMessage = errorData.title
-        }
-      } catch (e) {
-        console.error('Erreur parsing JSON:', errorText)
-        errorMessage = `Erreur serveur: ${response.status} ${response.statusText}`
-      }
-      
-      throw new Error(errorMessage)
+      throw new Error('Erreur lors de la sauvegarde du produit')
     }
     
-    const result = await response.json();
-    // Met à jour la liste localement pour un affichage réactif
-    if (editingProduct.value) {
-      const idx = products.value.findIndex(p => p.id === result.id);
-      if (idx !== -1) products.value[idx] = result;
-    } else {
-      products.value.push(result);
-    }
-    showForm.value = false;
-    await fetchProducts(); 
+    showForm.value = false
+    await fetchProducts()
+    
   } catch (err: any) {
     error.value = err.message
-    console.error('Erreur saveProduct:', err)
   }
 }
 
+// Supprimer un produit
 async function deleteProduct(productId: number | string) {
   if (!confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')) {
     return
@@ -202,80 +148,23 @@ async function deleteProduct(productId: number | string) {
       throw new Error('Erreur lors de la suppression du produit')
     }
     
-    await fetchProducts()
+    await fetchProducts() // Recharger la liste après suppression
   } catch (err: any) {
     error.value = err.message
   }
 }
 
+// Fermer le formulaire modal
 function closeForm() {
   showForm.value = false
   editingProduct.value = null
-}
-
-function getImageUrl(imageName: string | null): string {
-  console.log('getImageUrl appelé avec:', imageName)
-  
-  if (!imageName) {
-    console.log(' Aucune image, utilisation de l\'image par défaut')
-    return baguetteImage;
-  }
-  
-  // Si c'est déjà une URL complète
-  if (imageName.startsWith('http://') || imageName.startsWith('https://')) {
-    console.log(' URL complète détectée:', imageName)
-    return imageName;
-  }
-  
-  // Si c'est un chemin relatif avec uploads/
-  if (imageName.startsWith('uploads/')) {
-    const fullUrl = `http://localhost:8000/${imageName}`
-    console.log(' Chemin uploads/ détecté, URL complète:', fullUrl)
-    return fullUrl
-  }
-  
-  // Sinon, on suppose que c'est un fichier uploadé par l'API
-  const fullUrl = `http://localhost:8000/uploads/${imageName}`;
-  console.log(' Nom de fichier simple, URL construite:', fullUrl)
-  return fullUrl;
-}
-
-// Fonction pour déterminer quel champ d'image utiliser
-function getProductImage(product: any): string {
-  console.log(' Recherche de l\'image pour le produit:', product.name)
-  
-  // Essayer différents champs possibles dans l'ordre de priorité
-  const imageFields = ['imageUrl', 'image', 'imageName', 'imagePath']
-  
-  for (const field of imageFields) {
-    if (product[field]) {
-      console.log(` Image trouvée dans le champ '${field}':`, product[field])
-      return getImageUrl(product[field])
-    }
-  }
-  
-  console.log(' Aucune image trouvée, utilisation de l\'image par défaut')
-  return baguetteImage
-}
-
-function handleImageError(event: Event) {
-  const target = event.target as HTMLImageElement
-  console.log(' Erreur de chargement d\'image:', {
-    originalSrc: target.src,
-    alt: target.alt
-  })
-  
-  if (target) {
-    console.log(' Remplacement par l\'image par défaut')
-    target.src = baguetteImage
-  }
 }
 </script>
 
 <template>
   <div class="min-h-screen bg-gray-50 py-8">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <!-- En-tête -->
+      <!-- En-tête avec titre et statistiques -->
       <div class="mb-8">
         <div class="flex flex-col md:flex-row md:items-center md:justify-between">
           <div>
@@ -283,7 +172,7 @@ function handleImageError(event: Event) {
             <p class="mt-2 text-gray-600">Gérez vos produits en tant que vendeur</p>
           </div>
           
-          <!-- Statistiques -->
+          <!-- Statistiques des produits -->
           <div class="mt-4 md:mt-0 flex gap-4">
             <div class="bg-white px-4 py-2 rounded-lg shadow-sm border">
               <div class="text-sm text-gray-500">Total produits</div>
@@ -305,7 +194,7 @@ function handleImageError(event: Event) {
         </div>
       </div>
 
-      <!-- Message d'erreur -->
+      <!-- Affichage des erreurs -->
       <div v-if="error" class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg flex items-center gap-2">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -313,7 +202,7 @@ function handleImageError(event: Event) {
         {{ error }}
       </div>
 
-      <!-- Bouton d'ajout -->
+      <!-- Bouton pour ajouter un nouveau produit -->
       <div class="mb-6">
         <button 
           @click="openAddForm"
@@ -326,7 +215,7 @@ function handleImageError(event: Event) {
         </button>
       </div>
 
-      <!-- Formulaire modal -->
+      <!-- Formulaire modal pour créer/modifier un produit -->
       <ProductForm
         :product="editingProduct"
         :is-open="showForm"
@@ -334,7 +223,7 @@ function handleImageError(event: Event) {
         @save="saveProduct"
       />
 
-      <!-- Liste des produits -->
+      <!-- Affichage de la liste des produits -->
       <div v-if="loading" class="text-center py-8">
         <div class="text-gray-500">Chargement...</div>
       </div>
@@ -343,6 +232,7 @@ function handleImageError(event: Event) {
         <div class="text-gray-500">Aucun produit trouvé</div>
       </div>
       
+      <!-- Grille des produits avec le composant AdminProductCard -->
       <div v-else class="container mx-auto px-4">
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 justify-items-center">
           <AdminProductCard
