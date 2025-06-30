@@ -7,4 +7,7 @@ export default defineConfig({
   plugins: [vue(),
      tailwindcss(),
   ],
+  //  server: {
+  //   https: true
+  // }
 })

@@ -16,21 +16,24 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
 import { useAuthStore } from '../store/auth'
 
 const email = ref('')
 const password = ref('')
 const error = ref('')
 const auth = useAuthStore()
+const router = useRouter()
 
 async function handleSubmit(e: Event) {
   e.preventDefault()
   error.value = ''
   try {
     await auth.register(email.value, password.value)
-    // Redirige ou affiche un message de succès si besoin
+    // Redirection automatique vers la page d'accueil après inscription réussie
+    router.push('/')
   } catch (err: any) {
- error.value = err.message || 'Erreur d\'inscription'
+    error.value = err.message || 'Erreur d\'inscription'
   }
 }
 </script> 

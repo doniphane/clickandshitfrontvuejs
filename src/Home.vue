@@ -46,9 +46,19 @@ onMounted(async () => {
   try {
     const res = await fetch('http://localhost:8000/api/products')
     const data = await res.json()
-    products.value = data['hydra:member'] ?? data.member ?? data
+    if (Array.isArray(data['hydra:member'])) {
+      products.value = data['hydra:member']
+    } else if (Array.isArray(data.member)) {
+      products.value = data.member
+    } else if (Array.isArray(data)) {
+      products.value = data
+    } else {
+      products.value = []
+      console.error('La réponse de l’API produits n’est pas un tableau', data)
+    }
   } catch (e) {
     console.error('Erreur lors de la récupération des produits', e)
+    products.value = []
   }
 })
 </script>

@@ -51,7 +51,7 @@ export const useAuthStore = defineStore('auth', () => {
       isAuthenticated.value = true
       // data.token : valeur du token JWT reçu du backend
       //  sameSite: 'strict' le cookie n’est envoyé que pour le même site (protection CSRF) 
-      Cookies.set('token', data.token, { secure: true, sameSite: 'strict' })
+      Cookies.set('token', data.token, { secure: false, sameSite: 'strict' })
       await fetchProfile()
       return true
     } catch (e: any) {
