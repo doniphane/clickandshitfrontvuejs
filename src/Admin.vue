@@ -36,7 +36,7 @@ async function fetchProducts() {
     const response = await fetch('http://localhost:8000/api/products', {
       headers: {
         'Authorization': `Bearer ${auth.token}`,
-        'Content-Type': 'application/json'
+        'Accept': 'application/ld+json'
       }
     })
     
@@ -86,39 +86,55 @@ async function saveProduct(productData: any) {
     
     const method = editingProduct.value ? 'PUT' : 'POST'
     
-    // Préparer les données pour l'API
-    const cleanData: any = {
-      name: productData.name,
-      price: parseFloat(productData.price),
-      stockQuantity: parseInt(productData.stockQuantity)
+    // Utiliser FormData pour l'upload d'image
+    const formData = new FormData()
+    
+    // Ajouter les données du produit
+    formData.append('name', productData.name)
+    formData.append('price', productData.price.toString())
+    formData.append('stockQuantity', productData.stockQuantity.toString())
+    
+    if (productData.description) {
+      formData.append('description', productData.description)
     }
     
-    // Ajouter les champs optionnels s'ils existent
-    if (productData.description?.trim()) {
-      cleanData.description = productData.description.trim()
+    if (productData.category) {
+      formData.append('category', productData.category)
     }
     
-    if (productData.category?.trim()) {
-      cleanData.category = productData.category.trim()
+    // Si une nouvelle image est sélectionnée, l'ajouter
+    if (productData.image && productData.image instanceof File) {
+      formData.append('imageFile', productData.image)
     }
     
-    if (productData.imageName?.trim()) {
-      cleanData.imageName = productData.imageName.trim()
-    }
-    
-    // Envoyer la requête à l'API
     const response = await fetch(url, {
       method,
       headers: {
-        'Authorization': `Bearer ${auth.token}`,
-        'Content-Type': 'application/ld+json',
-        'Accept': 'application/ld+json'
+        'Authorization': `Bearer ${auth.token}`
+        // Ne pas définir Content-Type pour FormData, le navigateur le fait automatiquement
       },
-      body: JSON.stringify(cleanData)
+      body: formData
     })
     
     if (!response.ok) {
-      throw new Error('Erreur lors de la sauvegarde du produit')
+      const errorText = await response.text()
+      let errorMessage = 'Erreur lors de la sauvegarde du produit'
+      
+      try {
+        const errorData = JSON.parse(errorText)
+        if (errorData['hydra:description']) {
+          errorMessage = errorData['hydra:description']
+        } else if (errorData.message) {
+          errorMessage = errorData.message
+        } else if (errorData.detail) {
+          errorMessage = errorData.detail
+        }
+      } catch (e) {
+        console.error('Erreur parsing JSON:', errorText)
+        errorMessage = `Erreur serveur: ${response.status} ${response.statusText}`
+      }
+      
+      throw new Error(errorMessage)
     }
     
     showForm.value = false
@@ -140,7 +156,7 @@ async function deleteProduct(productId: number | string) {
       method: 'DELETE',
       headers: {
         'Authorization': `Bearer ${auth.token}`,
-        'Content-Type': 'application/json'
+        'Accept': 'application/ld+json'
       }
     })
     

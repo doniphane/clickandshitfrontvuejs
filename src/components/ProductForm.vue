@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useAuthStore } from '../store/auth'
 
 interface Product {
   id?: number
@@ -23,6 +24,7 @@ interface Emits {
 
 const props = defineProps<Props>()
 const emit = defineEmits<Emits>()
+const auth = useAuthStore()
 
 const formData = ref({
   name: '',
@@ -36,6 +38,16 @@ const formData = ref({
 const errors = ref<Record<string, string>>({})
 const isSubmitting = ref(false)
 
+// Variables pour l'upload d'image
+const selectedFile = ref<File | null>(null)
+const imagePreview = ref<string | null>(null)
+const uploadError = ref<string>('')
+const isUploading = ref(false)
+
+// Types de fichiers autorisés
+const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
+const maxFileSize = 5 * 1024 * 1024 // 5MB
+
 // Réinitialiser le formulaire quand le produit change
 watch(() => props.product, (newProduct) => {
   if (newProduct) {
@@ -47,6 +59,15 @@ watch(() => props.product, (newProduct) => {
       stockQuantity: (newProduct.stockQuantity?.toString()) || '',
       imageName: newProduct.imageName || ''
     }
+    // Afficher l'aperçu de l'image existante
+    if (newProduct.imageName) {
+      // Construire l'URL complète de l'image
+      if (newProduct.imageName.startsWith('http')) {
+        imagePreview.value = newProduct.imageName
+      } else {
+        imagePreview.value = `http://localhost:8000/uploads/${newProduct.imageName}`
+      }
+    }
   } else {
     formData.value = {
       name: '',
@@ -56,9 +77,66 @@ watch(() => props.product, (newProduct) => {
       stockQuantity: '',
       imageName: ''
     }
+    selectedFile.value = null
+    imagePreview.value = null
   }
   errors.value = {}
+  uploadError.value = ''
 }, { immediate: true })
+
+// Validation du fichier image
+function validateImage(file: File): boolean {
+  uploadError.value = ''
+  
+  // Vérifier le type de fichier
+  if (!allowedTypes.includes(file.type)) {
+    uploadError.value = 'Format non supporté. Utilisez JPEG, PNG ou WebP.'
+    return false
+  }
+  
+  // Vérifier la taille du fichier
+  if (file.size > maxFileSize) {
+    uploadError.value = 'Le fichier est trop volumineux. Taille maximum : 5MB.'
+    return false
+  }
+  
+  return true
+}
+
+// Gérer la sélection d'un fichier
+function handleFileSelect(event: Event) {
+  const target = event.target as HTMLInputElement
+  const file = target.files?.[0]
+  
+  if (!file) {
+    selectedFile.value = null
+    imagePreview.value = null
+    return
+  }
+  
+  if (!validateImage(file)) {
+    target.value = ''
+    return
+  }
+  
+  selectedFile.value = file
+  
+  // Créer l'aperçu de l'image
+  const reader = new FileReader()
+  reader.onload = (e) => {
+    imagePreview.value = e.target?.result as string
+  }
+  reader.readAsDataURL(file)
+}
+
+// Supprimer l'image sélectionnée
+function removeImage() {
+  selectedFile.value = null
+  imagePreview.value = null
+  uploadError.value = ''
+  const fileInput = document.getElementById('image-upload') as HTMLInputElement
+  if (fileInput) fileInput.value = ''
+}
 
 function validateForm(): boolean {
   errors.value = {}
@@ -82,31 +160,32 @@ function validateForm(): boolean {
   return Object.keys(errors.value).length === 0
 }
 
-function handleSubmit() {
+async function handleSubmit() {
   if (!validateForm()) return
   
   isSubmitting.value = true
   
-  const productData = {
-    name: formData.value.name.trim(),
-    price: parseFloat(formData.value.price),
-    description: formData.value.description.trim() || undefined,
-    category: formData.value.category.trim() || undefined,
-    stockQuantity: parseInt(formData.value.stockQuantity),
-    imageName: formData.value.imageName.trim() || undefined
-  }
-  
-  // Nettoyer les données - enlever les propriétés undefined
-  const cleanData: any = {}
-  Object.entries(productData).forEach(([key, value]) => {
-    if (value !== undefined && value !== null && value !== '') {
-      cleanData[key] = value
+  try {
+    // Préparer les données du produit
+    const productData: any = {
+      name: formData.value.name.trim(),
+      price: parseFloat(formData.value.price),
+      description: formData.value.description.trim() || '',
+      category: formData.value.category.trim() || '',
+      stockQuantity: parseInt(formData.value.stockQuantity)
     }
-  })
-  
-  console.log('Données du formulaire:', cleanData)
-  emit('save', cleanData)
-  isSubmitting.value = false
+    
+    // Si une nouvelle image est sélectionnée, l'ajouter aux données
+    if (selectedFile.value) {
+      productData.image = selectedFile.value
+    }
+    
+    emit('save', productData)
+  } catch (error: any) {
+    uploadError.value = error.message || 'Erreur lors de l\'upload de l\'image'
+  } finally {
+    isSubmitting.value = false
+  }
 }
 
 function handleClose() {
@@ -216,14 +295,59 @@ function handleClose() {
         <!-- Image -->
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
-            URL de l'image
+            Image du produit
           </label>
-          <input 
-            v-model="formData.imageName"
-            type="url"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500"
-            placeholder="https://example.com/image.jpg (optionnel)"
-          />
+          
+          <!-- Zone d'upload -->
+          <div class="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-orange-400 transition-colors">
+            <input 
+              id="image-upload"
+              type="file"
+              accept="image/jpeg,image/jpg,image/png,image/webp"
+              @change="handleFileSelect"
+              class="hidden"
+            />
+            
+            <!-- Aperçu de l'image -->
+            <div v-if="imagePreview" class="mb-4">
+              <img 
+                :src="imagePreview" 
+                alt="Aperçu" 
+                class="max-w-full h-32 object-cover rounded-lg mx-auto"
+              />
+              <button 
+                type="button"
+                @click="removeImage"
+                class="mt-2 text-red-500 hover:text-red-700 text-sm font-medium"
+              >
+                Supprimer l'image
+              </button>
+            </div>
+            
+            <!-- Zone de drop si pas d'image -->
+            <div v-else>
+              <svg class="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48">
+                <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+              </svg>
+              <p class="mt-2 text-sm text-gray-600">
+                <label for="image-upload" class="cursor-pointer text-orange-500 hover:text-orange-600 font-medium">
+                  Cliquez pour sélectionner
+                </label>
+                ou glissez-déposez
+              </p>
+              <p class="text-xs text-gray-500 mt-1">
+                PNG, JPG, WebP jusqu'à 5MB
+              </p>
+            </div>
+          </div>
+          
+          <!-- Message d'erreur upload -->
+          <p v-if="uploadError" class="text-red-500 text-xs mt-1">{{ uploadError }}</p>
+          
+          <!-- Indicateur d'upload -->
+          <div v-if="isUploading" class="mt-2 text-sm text-blue-600">
+            Upload de l'image en cours...
+          </div>
         </div>
         
         <!-- Boutons -->
